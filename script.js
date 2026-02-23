@@ -69,15 +69,16 @@ function toggleStyle(id) {
 // step 2 delegation  
 mainContainer.addEventListener('click', function (event) {
     if (event.target.classList.contains('interview-btn')) {
-        const parenNode = event.target.parentNode.parentNode;
+        const parenNode = event.target.closest('.card');
 
-        const plantName = parenNode.querySelector('.plantName').innerText
-        const light = parenNode.querySelector('.light').innerText
-        const water = parenNode.querySelector('.water').innerText
-        const status = parenNode.querySelector('.status').innerText
-        const notes = parenNode.querySelector('.notes').innerText
+        const plantName = parenNode.querySelector('.plantName')?.innerText || ''
+        const light = parenNode.querySelector('.light')?.innerText || ''
+        const water = parenNode.querySelector('.water')?.innerText || ''
+        const status = parenNode.querySelector('.status')?.innerText || ''
+        const notes = parenNode.querySelector('.notes')?.innerText || ''
 
-        parenNode.querySelector('.status').innerText = 'Interview'
+        const statusNode = parenNode.querySelector('.status')
+        if (statusNode) statusNode.innerText = 'Interview'
 
         const cardInfo = {
             plantName,
@@ -88,33 +89,30 @@ mainContainer.addEventListener('click', function (event) {
         }
 
         const plantExist = interviewList.find(item => item.plantName == cardInfo.plantName)
+        if (!plantExist) interviewList.push(cardInfo)
 
-        if (!plantExist) {
-            interviewList.push(cardInfo)
-        }
-
-        // step 2 finish
         // removing the plant from rejected list
         rejectedList = rejectedList.filter(item => item.plantName != cardInfo.plantName)
 
-        // after remove rerender the html
-        if (currentStatus == 'rejected-filter-btn') {
-            renderRejected()
-        }
+        // remove from All view so it only appears in the Interview module
+        if (allCardSection.contains(parenNode)) parenNode.remove()
 
-         calculateCount()
+        // after remove rerender the html if needed
+        if (currentStatus == 'rejected-filter-btn') renderRejected()
 
+        calculateCount()
 
     } else if (event.target.classList.contains('rejected-btn')) {
-        const parenNode = event.target.parentNode.parentNode;
+        const parenNode = event.target.closest('.card');
 
-        const plantName = parenNode.querySelector('.plantName').innerText
-        const light = parenNode.querySelector('.light').innerText
-        const water = parenNode.querySelector('.water').innerText
-        const status = parenNode.querySelector('.status').innerText
-        const notes = parenNode.querySelector('.notes').innerText
+        const plantName = parenNode.querySelector('.plantName')?.innerText || ''
+        const light = parenNode.querySelector('.light')?.innerText || ''
+        const water = parenNode.querySelector('.water')?.innerText || ''
+        const status = parenNode.querySelector('.status')?.innerText || ''
+        const notes = parenNode.querySelector('.notes')?.innerText || ''
 
-        parenNode.querySelector('.status').innerText = 'Rejected'
+        const statusNode = parenNode.querySelector('.status')
+        if (statusNode) statusNode.innerText = 'Rejected'
 
         const cardInfo = {
             plantName,
@@ -125,22 +123,41 @@ mainContainer.addEventListener('click', function (event) {
         }
 
         const plantExist = rejectedList.find(item => item.plantName == cardInfo.plantName)
-
-        if (!plantExist) {
-            rejectedList.push(cardInfo)
-        }
+        if (!plantExist) rejectedList.push(cardInfo)
 
         // removing the plant from interview list
         interviewList = interviewList.filter(item => item.plantName != cardInfo.plantName)
 
-        // console.log(interviewList);
+        // remove from All view so it only appears in the Rejected module
+        if (allCardSection.contains(parenNode)) parenNode.remove()
 
-        // after remove rerender the html
-        if (currentStatus == "interview-filter-btn") {
-            renderInterview();
-        }
+        // after remove rerender the html if needed
+        if (currentStatus == "interview-filter-btn") renderInterview();
         calculateCount()
+    }
 
+    else {
+        const deleteBtn = event.target.closest ? event.target.closest('.btn-delete') : null;
+        if (deleteBtn) {
+            const parenNode = deleteBtn.closest('.card');
+            if (!parenNode) return;
+
+            const plantName = parenNode.querySelector('.plantName')?.innerText || ''
+
+            // remove from data arrays
+            interviewList = interviewList.filter(item => item.plantName != plantName)
+            rejectedList = rejectedList.filter(item => item.plantName != plantName)
+
+            // remove DOM node from whichever section it's in
+            parenNode.remove()
+
+            // rerender filtered view if currently showing that filter
+            if (currentStatus == 'interview-filter-btn') renderInterview()
+            if (currentStatus == 'rejected-filter-btn') renderRejected()
+
+            calculateCount()
+            return
+        }
     }
 
 })
@@ -153,6 +170,18 @@ mainContainer.addEventListener('click', function (event) {
 function renderInterview() {
     // make the filterSection empty every time
     filterSection.innerHTML = ''
+
+    // if no interview items, show a friendly placeholder card
+    if (interviewList.length === 0) {
+        const emptyDiv = document.createElement('div')
+        emptyDiv.className = 'card flex flex-col items-center justify-center border p-8 text-center'
+        emptyDiv.innerHTML = `
+            <p class="text-2xl font-semibold">No interview jobs available</p>
+            <p class="text-sm text-gray-600 mt-2">There are currently no jobs marked for interview.</p>
+        `
+        filterSection.appendChild(emptyDiv)
+        return
+    }
 
     // crating innerHtml
     for (let interview of interviewList) {
@@ -170,22 +199,24 @@ function renderInterview() {
 
                     <!-- part 2 -->
                     <div class="flex gap-2">
-                        <p class="light bg-gray-200 px-5">Bright Indicate</p>
-                        <p class="water bg-gray-200 px-5">weekly</p>
+                        <p class="light bg-gray-200 px-5">${interview.light}</p>
+                        <p class="water bg-gray-200 px-5">${interview.water}</p>
                     </div>
                     <!-- part 3 -->
                      <p class="status">${interview.status}</p>
-                     <p class="notes">New leaf unfurling by the east window.</p>
+                     <p class="notes">${interview.notes}</p>
 
                      <div class="flex gap-5">
-                        <button class="interview-btn bg-green-200 px-4 py-2">Interview</button>
-                        <button class="rejected-btn bg-red-200 px-4 py-2">Rejected</button>
+                        <button class="interview-btn bg-green-200 px-4 py-2">INTERVIEW</button>
+                        <button class="rejected-btn bg-red-200 px-4 py-2">REJECTED</button>
                      </div>
                 </div>
 
                 <!-- main part 2 -->
                 <div>
-                    <button class="btn-delete bg-red-200 text-red-600 px-4 py-2">Delete</button>
+                    <button class="btn-delete bg-red-200 text-red-600 px-4 py-2">
+                        <span class="material-symbols-outlined">delete</span>
+                    </button>
                 </div>
         `
         filterSection.appendChild(div)
@@ -195,6 +226,17 @@ function renderInterview() {
 function renderRejected() {
     // make the filterSection empty every time
     filterSection.innerHTML = ''
+    // if no rejected items, show a friendly placeholder card
+    if (rejectedList.length === 0) {
+        const emptyDiv = document.createElement('div')
+        emptyDiv.className = 'card flex flex-col items-center justify-center border p-8 text-center'
+        emptyDiv.innerHTML = `
+            <p class="text-2xl font-semibold">No rejected jobs available</p>
+            <p class="text-sm text-gray-600 mt-2">There are currently no jobs marked as rejected.</p>
+        `
+        filterSection.appendChild(emptyDiv)
+        return
+    }
     // crating innerHtml
     for (let rejected of rejectedList) {
 
@@ -210,22 +252,24 @@ function renderRejected() {
 
                     <!-- part 2 -->
                     <div class="flex gap-2">
-                        <p class="light bg-gray-200 px-5">Bright Indicate</p>
-                        <p class="water bg-gray-200 px-5">weekly</p>
+                        <p class="light bg-gray-200 px-5">${rejected.light}</p>
+                        <p class="water bg-gray-200 px-5">${rejected.water}</p>
                     </div>
                     <!-- part 3 -->
                      <p class="status">${rejected.status}</p>
-                     <p class="notes">New leaf unfurling by the east window.</p>
+                     <p class="notes">${rejected.notes}</p>
 
                      <div class="flex gap-5">
-                        <button class="interview-btn bg-green-200 px-4 py-2">Interview</button>
-                        <button class="rejected-btn bg-red-200 px-4 py-2">Rejected</button>
+                        <button class="interview-btn bg-green-200 px-4 py-2">INTERVIEW</button>
+                        <button class="rejected-btn bg-red-200 px-4 py-2">REJECTED</button>
                      </div>
                 </div>
 
                 <!-- main part 2 -->
                 <div>
-                    <button class="btn-delete bg-red-200 text-red-600 px-4 py-2">Delete</button>
+                    <button class="btn-delete bg-red-200 text-red-600 px-4 py-2">
+                        <span class="material-symbols-outlined">delete</span>
+                    </button>
                 </div>
         `
         filterSection.appendChild(div)
